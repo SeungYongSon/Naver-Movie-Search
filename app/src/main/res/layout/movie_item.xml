@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
+    <data>
+        <variable name="viewModel"
+                  type="com.tails.boostcamp.viewmodel.MovieViewModel"/>
+        <variable name="movieItem"
+                  type="com.tails.boostcamp.model.Movie.Item"/>
+    </data>
+
+    <LinearLayout android:id="@+id/item"
+                  android:orientation="horizontal"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:onClick="@{()-> viewModel.onClickMovieItem(movieItem.link)}">
+
+        <ImageView android:id="@+id/movie_image_v"
+                   android:layout_width="0dp"
+                   android:layout_height="match_parent"
+                   android:layout_weight="0.25"
+                   android:scaleType="fitCenter"
+                   android:adjustViewBounds="true"
+                   android:layout_margin="10dp"
+                   app:glideLink="@{movieItem.image}"/>
+
+        <LinearLayout android:layout_width="0dp"
+                      android:layout_height="match_parent"
+                      android:layout_weight="0.75"
+                      android:orientation="vertical"
+                      android:layout_marginTop="10dp"
+                      android:layout_marginBottom="10dp"
+                      android:layout_marginEnd="10dp">
+
+            <TextView android:id="@+id/title_tv"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:textSize="16sp"
+                      app:textHtml="@{movieItem.title}"/>
+
+            <RatingBar android:id="@+id/user_rating"
+                       android:layout_width="wrap_content"
+                       android:layout_height="wrap_content"
+                       android:isIndicator="true"
+                       android:numStars="5"
+                       android:stepSize="0.01"
+                       android:rating="@{movieItem.userRating/2}"
+                       style="?android:attr/ratingBarStyleSmall"/>
+
+            <TextView android:id="@+id/pub_date_tv"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:textSize="14sp"
+                      app:textHtml="@{movieItem.pubDate}"/>
+
+            <TextView android:id="@+id/director_tv"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:textSize="14sp"
+                      app:textHtml="@{movieItem.director}"/>
+
+            <TextView android:id="@+id/actor_tv"
+                      android:layout_width="match_parent"
+                      android:layout_height="match_parent"
+                      android:textSize="14sp"
+                      app:textHtml="@{movieItem.actor}"/>
+        </LinearLayout>
+    </LinearLayout>
+</layout>
