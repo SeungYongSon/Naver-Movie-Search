@@ -11,14 +11,14 @@ import com.tails.boostcamp.model.Movie
 import com.tails.boostcamp.util.Connect
 import com.tails.boostcamp.util.Util
 
-class MovieViewModel(private val mainContract: MovieContract) {
+class MovieViewModel(private val movieContract: MovieContract) {
 
     var searchObservable = ObservableField<String>()
     var movieItemList = ObservableArrayList<Movie.Item>()
 
     private var search: String = ""
 
-    private var loading = true
+    private var load = true
     private var isTotal = false
 
     private var pastVisibleItems: Int = 0
@@ -27,44 +27,55 @@ class MovieViewModel(private val mainContract: MovieContract) {
 
     private var point: Int = 0
 
+    private fun resetData() {
+        search = searchObservable.get().toString()
+        point = 0
+        isTotal = false
+        load = true
+    }
+
+    private fun failSearch(text: String) {
+        if(point == 0) movieContract.dismissWaitDialog()
+        movieContract.toast(text)
+    }
+
+    private fun searchMovie(start : Int) {
+        Connect.postService.getMovie(
+            Util.XNaverClientId,
+            Util.XNaverClientSecret,
+            search,
+            point + start
+        ).enqueue(object : Connect.Res<Movie>() {
+            override fun callback(code: Int, body: Movie?) {
+                if (code == 200) {
+                    if(start == 1) movieItemList.clear()
+                    if (body!!.total != 0) {
+                        movieItemList.addAll(body.items)
+                        movieContract.dismissWaitDialog()
+                        point += start
+                    } else failSearch("\"$search\"\n검색 결과는 없습니다..")
+                    isTotal = movieItemList.size >= body.total
+                    load = true
+                } else failSearch("검색결과를 가져오는 중에\n오류가 생겼습니다. $code")
+            }
+
+            override fun fail(massage: String) {
+                load = true
+                failSearch("검색결과를 가져오는 중에\n예기치 못한 오류가 생겼습니다.")
+            }
+        })
+        if (point == 0) movieContract.showWaitDialog()
+    }
+
     fun onClickSearch() {
         if (!searchObservable.get()?.isEmpty()!!) {
-            search = searchObservable.get().toString()
-
-            point = 1
-            isTotal = false
-            loading = true
-
-            Connect.postService.getMovie(
-                Util.XNaverClientId,
-                Util.XNaverClientSecret,
-                search,
-                point
-            ).enqueue(object : Connect.Res<Movie>() {
-                override fun callback(code: Int, body: Movie?) {
-                    if (code == 200) {
-                        if (body?.total != 0) {
-                            movieItemList.clear()
-                            movieItemList.addAll(body!!.items)
-                        } else mainContract.toast("\"$search\" 검색 결과는 없습니다..")
-                        mainContract.dismissWaitDialog()
-                    } else {
-                        mainContract.dismissWaitDialog()
-                        mainContract.toast("검색결과를 가져오는 중에 오류가 생겼습니다. $code")
-                    }
-                }
-
-                override fun fail(massage: String) {
-                    mainContract.dismissWaitDialog()
-                    mainContract.toast("검색결과를 가져오는 중에 예기치 못한 오류가 생겼습니다.")
-                }
-            })
-            mainContract.showWaitDialog()
-        } else mainContract.toast("검색어를 입력하세요.")
+            resetData()
+            searchMovie(1)
+        } else failSearch("검색어를 입력하세요.")
     }
 
     fun onClickMovieItem(link: String) {
-        mainContract.showMovie(link)
+        movieContract.showMovie(link)
     }
 
     val editSearch = object : TextWatcher {
@@ -87,41 +98,14 @@ class MovieViewModel(private val mainContract: MovieContract) {
                 totalItemCount = layoutManager.itemCount
                 pastVisibleItems = layoutManager.findFirstVisibleItemPosition()
 
-                if(point != 1000) {
-                    var count = 10
-                    if (point + 10 > 1000) count--
-
-                    if (loading && !isTotal) {
-                        if ((visibleItemCount + pastVisibleItems) >= totalItemCount) {
-                            loading = false
-                            Connect.postService.getMovie(
-                                Util.XNaverClientId,
-                                Util.XNaverClientSecret,
-                                search,
-                                point + count
-                            ).enqueue(object : Connect.Res<Movie>() {
-                                override fun callback(code: Int, body: Movie?) {
-                                    if (code == 200) {
-                                        movieItemList.addAll(body?.items!!)
-
-                                        loading = true
-                                        point += count
-                                        isTotal = movieItemList.size >= body.total
-                                    } else {
-                                        loading = true
-                                        mainContract.toast("결과를 가져오는 중에 오류가 생겼습니다. $code")
-                                    }
-                                }
-
-                                override fun fail(massage: String) {
-                                    loading = true
-                                    mainContract.toast("결과를 가져오는 중에 예기치 못한 오류가 생겼습니다.")
-                                }
-                            })
+                if ((visibleItemCount + pastVisibleItems) >= totalItemCount) {
+                    if (point != 1000) {
+                        if (load && !isTotal) {
+                            load = false
+                            val count = if (point + 10 > 1000) 9 else 10
+                            searchMovie(count)
                         }
-                    }
-                } else{
-                    mainContract.toast("최대 1000개까지의 결과를 가져올 수 있습니다.")
+                    } else failSearch("최대 1000개까지의 검색결과를\n가져올 수 있습니다.")
                 }
             }
         }
