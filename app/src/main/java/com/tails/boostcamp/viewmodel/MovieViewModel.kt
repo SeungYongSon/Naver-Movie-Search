@@ -13,7 +13,9 @@ import com.tails.boostcamp.util.Util
 
 class MovieViewModel(private val movieContract: MovieContract) {
 
-    var searchObservable = ObservableField<String>()
+    var searchObservable = ObservableField<String>().apply {
+        set("")
+    }
     var movieItemList = ObservableArrayList<Movie.Item>()
 
     private var search: String = ""
@@ -35,7 +37,7 @@ class MovieViewModel(private val movieContract: MovieContract) {
     }
 
     private fun failSearch(text: String) {
-        if(point == 0) movieContract.dismissWaitDialog()
+        if(point == 0 && !searchObservable.get()?.isEmpty()!!) movieContract.dismissWaitDialog()
         movieContract.toast(text)
     }
 
